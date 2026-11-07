@@ -1,0 +1,12 @@
+target/
+.idea/
+*.iml
+.vscode/
+.DS_Store
+Thumbs.db
+hs_err_pid*.log
+replay_pid*.log
+
+# Runtime data; keep data/sample-courses.txt under version control.
+data/courses.txt
+data/*.tmp
