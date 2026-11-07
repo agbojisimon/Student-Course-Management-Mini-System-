@@ -1,0 +1,4 @@
+COS 201	Introduction to Programming	3
+MTH 201	Mathematics for Computing	4
+GST 201	Communication in English	2
+CSC 202	Object-Oriented Programming	3
