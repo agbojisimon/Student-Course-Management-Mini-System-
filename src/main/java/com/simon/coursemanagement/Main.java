@@ -1,110 +1,77 @@
 package com.simon.coursemanagement;
 
-import com.googlecode.lanterna.TerminalSize;
-import com.googlecode.lanterna.TextColor;
-import com.googlecode.lanterna.gui2.BasicWindow;
-import com.googlecode.lanterna.gui2.DefaultWindowManager;
-import com.googlecode.lanterna.gui2.EmptySpace;
-import com.googlecode.lanterna.gui2.MultiWindowTextGUI;
-import com.googlecode.lanterna.screen.TerminalScreen;
-import com.googlecode.lanterna.terminal.swing.SwingTerminalFontConfiguration;
-import com.googlecode.lanterna.terminal.swing.SwingTerminalFrame;
-import com.googlecode.lanterna.terminal.swing.TerminalEmulatorAutoCloseTrigger;
-import com.googlecode.lanterna.terminal.swing.TerminalEmulatorColorConfiguration;
-import com.googlecode.lanterna.terminal.swing.TerminalEmulatorDeviceConfiguration;
+import com.formdev.flatlaf.FlatLightLaf;
 import com.simon.coursemanagement.service.CourseManager;
 import com.simon.coursemanagement.storage.CourseFileHandler;
-import com.simon.coursemanagement.ui.ConsoleMenu;
+import com.simon.coursemanagement.ui.MainFrame;
+import com.simon.coursemanagement.ui.UiTheme;
 
-import javax.swing.JFrame;
+import javax.swing.JOptionPane;
+import javax.swing.SwingUtilities;
+import javax.swing.UIManager;
+import java.awt.Font;
 import java.awt.GraphicsEnvironment;
-import java.awt.event.WindowAdapter;
-import java.awt.event.WindowEvent;
-import java.io.IOException;
 
 /**
  * Application entry point.
  *
- * <p>On Windows, Lanterna is started with its Swing terminal so the text
- * interface opens in a normal desktop window. This avoids terminal/console
- * compatibility problems when the program is launched from IntelliJ.</p>
+ * <p>Swing components must be created on the Event Dispatch Thread, which is
+ * why the frame construction is wrapped in {@link SwingUtilities#invokeLater}.
+ * FlatLaf is installed before the frame is built so every control uses the
+ * same modern look and feel.</p>
  */
-public class Main {
+public final class Main {
+
+    private Main() {
+    }
 
     public static void main(String[] args) {
-        // A desktop is required because this application uses Lanterna's Swing
-        // window. This check also gives a clear message in headless CI systems.
         if (GraphicsEnvironment.isHeadless()) {
-            System.err.println("This application needs a desktop environment to show the Lanterna window.");
+            System.err.println("This application needs a desktop environment to show the Swing window.");
             return;
         }
 
-        SwingTerminalFrame terminal = null;
-        TerminalScreen screen = null;
+        SwingUtilities.invokeLater(() -> {
+            try {
+                FlatLightLaf.setup();
+                configureGlobalStyles();
 
-        try {
-            // SwingTerminalFrame is Lanterna's ready-made Swing window. It is
-            // also a Terminal, so TerminalScreen can read keys and draw output.
-            terminal = new SwingTerminalFrame(
-                    "COS 201 - Student Course Management",
-                    new TerminalSize(110, 34),
-                    TerminalEmulatorDeviceConfiguration.getDefault(),
-                    SwingTerminalFontConfiguration.getDefaultOfSize(16),
-                    TerminalEmulatorColorConfiguration.getDefault(),
-                    TerminalEmulatorAutoCloseTrigger.CloseOnExitPrivateMode);
-            terminal.setLocationRelativeTo(null);
-
-            screen = new TerminalScreen(terminal);
-            screen.startScreen();
-
-            // SwingTerminalFrame starts hidden, so show it explicitly after the
-            // screen is ready. This line is required for the UI to appear.
-            terminal.setVisible(true);
-
-            // MultiWindowTextGUI draws the windows and handles keyboard focus.
-            // The EmptySpace sets the area behind the window to white.
-            MultiWindowTextGUI gui = new MultiWindowTextGUI(
-                    screen,
-                    new DefaultWindowManager(),
-                    new EmptySpace(TextColor.ANSI.WHITE));
-            gui.setTheme(ConsoleMenu.createTheme());
-
-            CourseManager courseManager = new CourseManager();
-            CourseFileHandler fileHandler = new CourseFileHandler();
-            ConsoleMenu menu = new ConsoleMenu(gui, courseManager, fileHandler);
-            BasicWindow window = menu.createWindow();
-
-            // Make the Swing window's X button use the same safe-exit check as
-            // the Exit Program button, including the unsaved-changes prompt.
-            terminal.setDefaultCloseOperation(JFrame.DO_NOTHING_ON_CLOSE);
-            terminal.addWindowListener(new WindowAdapter() {
-                @Override
-                public void windowClosing(WindowEvent event) {
-                    gui.getGUIThread().invokeLater(menu::requestExit);
-                }
-            });
-
-            // This blocks until the menu window is closed.
-            gui.addWindowAndWait(window);
-        } catch (IOException e) {
-            System.err.println("Could not start the application: " + e.getMessage());
-            e.printStackTrace();
-        } catch (RuntimeException e) {
-            System.err.println("Unexpected error while starting the application: " + e.getMessage());
-            e.printStackTrace();
-        } finally {
-            // Clean up the terminal even after an error. Problems here are
-            // reported rather than silently ignored.
-            if (screen != null) {
-                try {
-                    screen.stopScreen();
-                } catch (IOException e) {
-                    System.err.println("Could not stop the screen cleanly: " + e.getMessage());
-                }
+                MainFrame frame = new MainFrame(new CourseManager(), new CourseFileHandler());
+                frame.setVisible(true);
+            } catch (RuntimeException error) {
+                error.printStackTrace();
+                JOptionPane.showMessageDialog(
+                        null,
+                        "Could not start the application: " + error.getMessage(),
+                        "Startup Error",
+                        JOptionPane.ERROR_MESSAGE);
             }
-            if (terminal != null) {
-                terminal.close();
-            }
-        }
+        });
+    }
+
+    /**
+     * Applies the shared blue focus treatment and readable selection colours.
+     * These values sit alongside the explicit fonts and colours in MainFrame.
+     */
+    private static void configureGlobalStyles() {
+        UIManager.put("defaultFont", UiTheme.font(14, Font.PLAIN));
+
+        UIManager.put("Component.focusWidth", 1);
+        UIManager.put("Component.innerFocusWidth", 1);
+        UIManager.put("Component.focusColor", UiTheme.BLUE);
+        UIManager.put("Component.borderColor", UiTheme.BORDER_STRONG);
+        UIManager.put("Component.focusedBorderColor", UiTheme.BLUE);
+        UIManager.put("Component.disabledBorderColor", UiTheme.BORDER);
+
+        UIManager.put("TextField.selectionBackground", UiTheme.BLUE_SOFT);
+        UIManager.put("TextField.selectionForeground", UiTheme.TEXT);
+
+        UIManager.put("Table.selectionBackground", UiTheme.BLUE);
+        UIManager.put("Table.selectionForeground", UiTheme.WHITE);
+        UIManager.put("TableHeader.background", UiTheme.SURFACE);
+        UIManager.put("TableHeader.foreground", UiTheme.MUTED);
+
+        UIManager.put("OptionPane.background", UiTheme.WHITE);
+        UIManager.put("OptionPane.messageForeground", UiTheme.TEXT);
     }
 }

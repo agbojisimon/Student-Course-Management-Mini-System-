@@ -10,7 +10,7 @@
     <packaging>jar</packaging>
 
     <name>Student Course Management</name>
-    <description>COS 201 lab assessment: a small Lanterna text-based course manager.</description>
+    <description>COS 201 lab assessment: a Swing desktop course manager using FlatLaf.</description>
 
     <properties>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
@@ -19,11 +19,11 @@
     </properties>
 
     <dependencies>
-        <!-- Stable Lanterna release resolved from Maven Central. -->
+        <!-- Stable FlatLaf release resolved from Maven Central. -->
         <dependency>
-            <groupId>com.googlecode.lanterna</groupId>
-            <artifactId>lanterna</artifactId>
-            <version>3.1.5</version>
+            <groupId>com.formdev</groupId>
+            <artifactId>flatlaf</artifactId>
+            <version>3.8</version>
         </dependency>
     </dependencies>
 
