@@ -1,12 +1,13 @@
 # Student Course Management (COS 201 Mini-System)
 
 A small Java desktop application for managing a student's course list. The user
-interface is a text-based Lanterna interface displayed inside a normal Swing
-window, so it can be launched directly from IntelliJ IDEA.
+interface is a Swing dashboard styled with FlatLaf, so it can be launched
+directly from IntelliJ IDEA or with the Maven Wrapper.
 
 The project keeps the design intentionally small: one model class, one service
-class, one file handler, one UI class, and one entry point. It does not use a
-database, a web server, Spring, authentication, or any other unrelated feature.
+class, one file handler, a focused set of UI classes, and one entry point. It
+does not use a database, a web server, Spring, authentication, or any other
+unrelated feature.
 
 ## Features
 
@@ -35,14 +36,26 @@ Additional behaviour:
   line reports its line number and leaves the existing list unchanged.
 - Unsaved changes are tracked, and load/exit actions ask before discarding or
   replacing data.
+- File operations run on a background `SwingWorker` so the window stays
+  responsive.
+- A selected course can be edited without changing its original reference. The
+  edited course may keep its code, while changing to another existing code is
+  rejected.
+- Deleting a selected course requires confirmation. **Cancel** in the
+  confirmation dialog leaves the record untouched.
+- Edit and delete operate on the selected row even when the table is sorted or
+  the search filter is active; the active search is reapplied afterward.
+- Editing changes the primary form action to **Save Changes** and the clear
+  action to **Cancel Edit**. No change is written to disk until **Save to
+  File** is used.
 
 ## Requirements
 
 - JDK 27. The Maven configuration uses `<maven.compiler.release>27</maven.compiler.release>`.
-- A desktop environment. The application uses Lanterna's Swing terminal.
+- A desktop environment. The application uses Swing and FlatLaf.
 - No global Maven installation is required because the Maven Wrapper is included.
-- The dependency `com.googlecode.lanterna:lanterna:3.1.5` is downloaded from
-  Maven Central on the first build.
+- The dependency `com.formdev:flatlaf:3.8` is downloaded from Maven Central on
+  the first build.
 
 ## Quick Start (PowerShell)
 
@@ -53,9 +66,11 @@ From the project root:
 .\mvnw.cmd exec:java
 ```
 
-The application opens in a Lanterna/Swing window. Saved records are written to
-`data\courses.txt` relative to the working directory. The file is not loaded
-automatically at startup; use **Load from File** after starting the program.
+The application opens a Swing dashboard with a dark navigation sidebar, summary
+cards, a course entry form, a searchable table, file actions, and a status bar.
+Saved records are written to `data\courses.txt` relative to the working
+directory. The file is not loaded automatically at startup; use **Load from
+File** after starting the program.
 
 If you use the classic Command Prompt instead of PowerShell, run:
 
@@ -102,16 +117,31 @@ reload the Maven project:
 
 ## Using the Application
 
-- Use **Tab** and **Shift+Tab** to move between input fields and buttons.
-- Press **Enter** or **Space** to activate a focused button.
+- The **Dashboard** and **Courses** sidebar buttons move focus to the main entry
+  form or the course search field.
+- Use **Tab** and **Shift+Tab** to move between controls.
+- Press **Enter** in the entry fields to add a course, or press **Enter** in the
+  search field to search.
 - Use **Up/Down** to select a row in the course table.
-- The status area at the bottom reports success and error messages.
-- The summary line shows the number of courses, total units, and whether there
-  are unsaved changes.
+- The status bar at the bottom reports success, busy, and error messages.
+- The summary cards show the number of courses, total credit units, and whether
+  there are unsaved changes.
+- **Add Course** validates the three fields, adds the record, refreshes the
+  summary and table, and returns focus to the course code field.
+- Select a table row and use **Edit Selected** to load it into the entry form.
+  Change the fields and choose **Save Changes**, or choose **Cancel Edit** to
+  leave the record unchanged.
+- Select a table row and use **Delete Selected** to remove it. The confirmation
+  dialog offers **Delete** and **Cancel**.
+- **Clear Form** empties the entry fields without changing saved records. In
+  edit mode the same button is labelled **Cancel Edit**.
+- **Search** finds a course by code recursively; **Show All** restores the full
+  list.
+- **Compute Total Units** recalculates and reports the total.
 - **Save to File** writes the current list to `data\courses.txt`.
 - **Load from File** replaces the current list only after the whole file has
-  been validated.
-- **Exit Program** and the window close button both check for unsaved changes.
+  been validated. A successful load clears any active selection and edit state.
+- **Exit** and the window close button both check for unsaved changes.
 
 ### Sample data
 
@@ -157,14 +187,13 @@ Run the checks from PowerShell:
 
 ```powershell
 .\mvnw.cmd -q clean test-compile
-$lanterna = Join-Path $env:USERPROFILE ".m2\repository\com\googlecode\lanterna\lanterna\3.1.5\lanterna-3.1.5.jar"
-java -cp "target\test-classes;target\classes;$lanterna" com.simon.coursemanagement.VerificationChecks
+java -cp "target\test-classes;target\classes" com.simon.coursemanagement.VerificationChecks
 ```
 
 Expected output:
 
 ```text
-ALL 56 CHECKS PASSED
+ALL 91 CHECKS PASSED
 ```
 
 The checks cover:
@@ -176,6 +205,11 @@ The checks cover:
   input rejection
 - Recursive search on first, middle, and last records, plus the empty-list case
 - Total-unit calculation
+- Updating a course while retaining its own code
+- Rejecting an update that would duplicate another course code
+- Preserving the original record when an update fails
+- Deleting a course and cancelling edit mode for the deleted record
+- Save/reload persistence after update and delete
 - UTF-8 save/load round trip
 - Missing-file error reporting
 - Malformed and duplicate file rows with line numbers
@@ -193,15 +227,14 @@ Build and package verification:
 A successful run ends with `BUILD SUCCESS`.
 
 The automated checks cover business logic and file handling. They do not replace
-a manual visual check of the Lanterna window; launch the application and inspect
+a manual visual check of the Swing window; launch the application and inspect
 the layout, focus states, and button behaviour before submitting screenshots.
 
 ## Screenshots for Submission
 
 A screenshot of the real running application is included at
-`docs\screenshots\01-main-window.png`. It shows the initial empty state of the
-main window. For a more useful submission screenshot, add a few courses or load
-the sample file, then capture the window again.
+`docs\screenshots\01-main-window.png`. It shows the dashboard with sample course
+records loaded and the **Edit Selected** and **Delete Selected** controls.
 
 ![Main window](docs/screenshots/01-main-window.png)
 
@@ -211,12 +244,11 @@ the sample file, then capture the window again.
 3. Select the application window and save the image under
    `docs\screenshots\`.
 4. Suggested captures:
-   - `01-main-window.png` - the complete main window (included in the project)
-   - `02-main-window-with-courses.png` - the table populated with records
-   - `03-search-result.png` - a successful course search
-   - `04-total-units.png` - the total-units status message
-   - `05-save-success.png` - the save confirmation
-   - `06-load-error.png` - a malformed-file or missing-file error
+   - `01-main-window.png` - the complete main window with records
+   - `02-search-result.png` - a successful course search
+   - `03-total-units.png` - the total-units status message
+   - `04-save-success.png` - the save confirmation
+   - `05-load-error.png` - a malformed-file or missing-file error
 5. Use screenshots of the real running application only. Do not fabricate
    results.
 
@@ -246,7 +278,11 @@ the sample file, then capture the window again.
 |   |   |-- model/Course.java
 |   |   |-- service/CourseManager.java
 |   |   |-- storage/CourseFileHandler.java
-|   |   `-- ui/ConsoleMenu.java
+|   |   `-- ui/
+|   |       |-- AppButton.java
+|   |       |-- CourseTableModel.java
+|   |       |-- MainFrame.java
+|   |       `-- UiTheme.java
 |   `-- test/java/com/simon/coursemanagement/
 |       `-- VerificationChecks.java
 `-- target/                 (generated by Maven, not committed)
@@ -260,8 +296,9 @@ the sample file, then capture the window again.
 - Course codes are stored with a single space, for example `COS 201`.
 - Records are stored in a plain UTF-8 text file, not a database.
 - The application is single-user and does not attempt concurrent file access.
-- There is no edit or delete action because those features were not part of the
-  required seven actions.
+- Update and Delete are provided as additional management actions beyond the
+  required seven. Both change only the in-memory list until **Save to File** is
+  used.
 - The application does not load data automatically at startup; this keeps
   startup predictable and lets the user choose when to replace the current list.
 
@@ -291,5 +328,8 @@ the sample file, then capture the window again.
 
 **The layout looks cramped**
 
-- The initial Swing terminal is 110 columns by 34 rows. The window and font size
-  are configured in `Main.java`.
+- The default window is 1240 by 700 pixels with a minimum of 1000 by 700.
+- At the minimum width, the search and selection buttons wrap onto two rows.
+- The course table scrolls independently when more records are loaded.
+- On a smaller display, maximize the window or reduce the operating-system
+  display scaling.
