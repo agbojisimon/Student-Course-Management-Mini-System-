@@ -25,7 +25,7 @@ public final class Course {
      */
     public Course(String code, String title, int units) {
         this.code = normalizeCode(code);
-        this.title = validateTitle(title);
+        this.title = normalizeTitle(title);
         if (units <= 0) {
             throw new IllegalArgumentException("Credit units must be a positive whole number.");
         }
@@ -73,9 +73,11 @@ public final class Course {
      * Trims and validates a course title.
      *
      * <p>Tabs and line breaks are rejected because the save file uses tabs to
-     * separate fields and new lines to separate records.</p>
+     * separate fields and new lines to separate records. The method is public
+     * so the Swing form can check the title field before submitting the whole
+     * course to {@link com.simon.coursemanagement.service.CourseManager}.</p>
      */
-    private static String validateTitle(String rawTitle) {
+    public static String normalizeTitle(String rawTitle) {
         if (rawTitle == null) {
             throw new IllegalArgumentException("Course title is required.");
         }
