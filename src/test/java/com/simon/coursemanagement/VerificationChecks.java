@@ -37,7 +37,10 @@ public final class VerificationChecks {
             checkInvalidInput();
             checkRecursiveSearch();
             checkTotalUnits();
+            checkUpdateCourse();
+            checkDeleteCourse();
             checkSaveLoadRoundTrip(temporaryDirectory);
+            checkUpdateDeletePersistence(temporaryDirectory);
             checkMissingFile(temporaryDirectory);
             checkMalformedFileLeavesCoursesUnchanged(temporaryDirectory);
             checkSnapshotSave(temporaryDirectory);
@@ -145,6 +148,89 @@ public final class VerificationChecks {
         check(manager.computeTotalUnits() == 9, "total units computed with a loop");
     }
 
+    private static void checkUpdateCourse() {
+        CourseManager manager = new CourseManager();
+        Course original = manager.addCourse("COS 201", "Introduction to Programming", 3);
+        manager.addCourse("MTH 201", "Mathematics for Computing", 4);
+
+        Course updatedTitle = manager.updateCourse(
+                original, "COS 201", "Advanced Programming", 3);
+        check(updatedTitle.getTitle().equals("Advanced Programming"),
+                "update changes the title");
+        check(manager.getCourseCount() == 2, "update does not add a duplicate record");
+        check(manager.getAllCourses().get(0) == updatedTitle,
+                "update keeps the original list position");
+        check(manager.searchCourse("COS 201") == updatedTitle,
+                "updated course remains searchable by code");
+
+        Course updatedUnits = manager.updateCourse(
+                updatedTitle, " cos201 ", "Advanced Programming", 5);
+        check(updatedUnits.getCode().equals("COS 201"),
+                "update accepts the same normalized code");
+        check(updatedUnits.getUnits() == 5, "update changes the units");
+        check(manager.computeTotalUnits() == 9, "update changes the total units");
+
+        Course changedCode = manager.updateCourse(
+                updatedUnits, "CSC 301", "Advanced Programming", 5);
+        check(changedCode.getCode().equals("CSC 301"), "update changes the course code");
+        check(manager.searchCourse("COS 201") == null,
+                "old code is gone after a code change");
+        check(manager.searchCourse("CSC 301") == changedCode,
+                "new code finds the updated course");
+        check(manager.getCourseCount() == 2, "code change does not change the count");
+
+        expectThrows(IllegalArgumentException.class,
+                () -> manager.updateCourse(changedCode, "MTH 201", "Duplicate Code", 5),
+                "update rejects another course's code");
+        check(manager.searchCourse("CSC 301") == changedCode,
+                "rejected duplicate leaves the original record unchanged");
+        check(manager.searchCourse("CSC 301").getTitle().equals("Advanced Programming"),
+                "rejected duplicate leaves the original title unchanged");
+
+        expectThrows(IllegalArgumentException.class,
+                () -> manager.updateCourse(changedCode, "CSC 301", "   ", 5),
+                "update rejects a blank title");
+        check(manager.searchCourse("CSC 301") == changedCode,
+                "invalid title leaves the original record unchanged");
+
+        expectThrows(IllegalArgumentException.class,
+                () -> manager.updateCourse(changedCode, "CSC 301", "Advanced Programming", 0),
+                "update rejects zero units");
+        check(manager.searchCourse("CSC 301").getUnits() == 5,
+                "invalid units leave the original units unchanged");
+
+        Course stale = new Course("GST 201", "Stale Course", 2);
+        expectThrows(IllegalArgumentException.class,
+                () -> manager.updateCourse(stale, "GST 201", "Stale Course", 2),
+                "update rejects a course that is not in the list");
+        check(manager.getCourseCount() == 2, "failed update leaves the count unchanged");
+    }
+
+    private static void checkDeleteCourse() {
+        CourseManager manager = new CourseManager();
+        Course first = manager.addCourse("AAA 101", "First Course", 1);
+        Course middle = manager.addCourse("BBB 202", "Middle Course", 2);
+        Course last = manager.addCourse("CCC 303", "Last Course", 3);
+
+        Course removed = manager.deleteCourse(middle);
+        check(removed == middle, "delete removes the exact selected course");
+        check(manager.getCourseCount() == 2, "delete changes the course count");
+        check(manager.searchCourse("BBB 202") == null, "deleted course is gone");
+        check(manager.searchCourse("AAA 101") == first, "delete keeps the first course");
+        check(manager.searchCourse("CCC 303") == last, "delete keeps the last course");
+        check(manager.computeTotalUnits() == 4, "delete updates the total units");
+
+        expectThrows(IllegalArgumentException.class,
+                () -> manager.deleteCourse(middle),
+                "delete rejects an already removed course");
+        check(manager.getCourseCount() == 2, "failed delete leaves the count unchanged");
+
+        expectThrows(IllegalArgumentException.class,
+                () -> manager.deleteCourse(null),
+                "delete rejects a null course");
+        check(manager.getCourseCount() == 2, "null delete leaves the count unchanged");
+    }
+
     private static void checkSaveLoadRoundTrip(Path directory) throws IOException {
         Path file = directory.resolve("round-trip.txt");
         CourseFileHandler handler = new CourseFileHandler(file);
@@ -171,6 +257,41 @@ public final class VerificationChecks {
         check(restored.searchCourse("GST 201").getTitle().equals("Café Communication"),
                 "UTF-8 title survives round trip");
         check(restored.computeTotalUnits() == 9, "loaded total units are correct");
+    }
+
+    private static void checkUpdateDeletePersistence(Path directory) throws IOException {
+        Path file = directory.resolve("updated-deleted.txt");
+        CourseFileHandler handler = new CourseFileHandler(file);
+        CourseManager manager = new CourseManager();
+
+        manager.addCourse("COS 201", "Introduction to Programming", 3);
+        manager.addCourse("MTH 201", "Mathematics for Computing", 4);
+        manager.addCourse("GST 201", "Communication in English", 2);
+
+        Course cosCourse = manager.searchCourse("COS 201");
+        manager.updateCourse(cosCourse, "CSC 301", "Advanced Programming", 4);
+
+        Course mthCourse = manager.searchCourse("MTH 201");
+        manager.deleteCourse(mthCourse);
+
+        handler.saveCourses(manager.getAllCourses());
+        List<Course> loaded = handler.loadCourses();
+
+        check(loaded.size() == 2, "save after update/delete writes two records");
+        check(loaded.stream().anyMatch(course ->
+                        course.getCode().equals("CSC 301")
+                                && course.getTitle().equals("Advanced Programming")
+                                && course.getUnits() == 4),
+                "updated record survives save and reload");
+        check(loaded.stream().noneMatch(course -> course.getCode().equals("MTH 201")),
+                "deleted record stays absent after save and reload");
+        check(loaded.stream().anyMatch(course -> course.getCode().equals("GST 201")),
+                "untouched record survives save and reload");
+
+        CourseManager restored = new CourseManager();
+        restored.replaceAllCourses(loaded);
+        check(restored.computeTotalUnits() == 6,
+                "reloaded total units reflect the update and delete");
     }
 
     private static void checkMissingFile(Path directory) {
