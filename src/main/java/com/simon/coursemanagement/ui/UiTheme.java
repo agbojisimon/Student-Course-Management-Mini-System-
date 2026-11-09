@@ -3,13 +3,7 @@ package com.simon.coursemanagement.ui;
 import java.awt.Color;
 import java.awt.Font;
 
-/**
- * Shared colours and fonts for the Swing interface.
- *
- * <p>Keeping these values in one place makes the dashboard consistent and
- * makes it easy for a beginner to change the visual theme without hunting
- * through every panel.</p>
- */
+/** Shared colours and fonts for the interface. */
 public final class UiTheme {
 
     public static final Color NAVY = new Color(15, 23, 42);

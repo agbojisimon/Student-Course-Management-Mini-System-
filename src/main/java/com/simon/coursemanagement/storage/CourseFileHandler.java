@@ -14,17 +14,7 @@ import java.nio.file.Path;
 import java.nio.file.StandardCopyOption;
 import java.util.List;
 
-/**
- * Saves courses to a UTF-8 text file and loads them back.
- *
- * <p>File format: one course per line, with exactly three tab-separated
- * fields:</p>
- *
- * <pre>CODE&lt;TAB&gt;TITLE&lt;TAB&gt;UNITS</pre>
- *
- * <p>The default file is {@code data/courses.txt}, relative to the project
- * root. The data directory is created automatically on the first save.</p>
- */
+/** Saves and loads courses in a UTF-8 text file, one course per line. */
 public class CourseFileHandler {
 
     private static final String DEFAULT_DIRECTORY = "data";
@@ -32,16 +22,12 @@ public class CourseFileHandler {
 
     private final Path filePath;
 
-    /**
-     * Uses the normal save location: data/courses.txt.
-     */
+    /** Uses data/courses.txt. */
     public CourseFileHandler() {
         this(Path.of(DEFAULT_DIRECTORY, DEFAULT_FILE_NAME));
     }
 
-    /**
-     * Allows a different path, which is useful for tests and temporary files.
-     */
+    /** Uses a custom file path, mainly for tests. */
     public CourseFileHandler(Path filePath) {
         if (filePath == null) {
             throw new IllegalArgumentException("File path cannot be null.");
@@ -53,22 +39,14 @@ public class CourseFileHandler {
         return filePath;
     }
 
-    /**
-     * Path shown in user messages. It stays relative when the handler was
-     * created with a relative path, so messages are easier to read.
-     */
+    /** Returns the path shown in user messages. */
     public String getDisplayPath() {
         return filePath.toString();
     }
 
     /**
-     * Saves the whole list as one snapshot. The file is not appended to, so
-     * saving twice cannot create duplicate records.
-     *
-     * <p>A temporary file is written first and then moved over the real file.
-     * If writing fails, the previous saved file is left in place.</p>
-     *
-     * @throws IOException if the directory or file cannot be written
+     * Writes the whole list to disk as a snapshot.
+     * A temporary file protects the old file if saving fails.
      */
     public void saveCourses(List<Course> courses) throws IOException {
         if (courses == null) {
@@ -104,7 +82,7 @@ public class CourseFileHandler {
                 }
             }
 
-            // Replace the old file only after the temporary file is complete.
+            // Replace the old file only after the new one is complete.
             try {
                 Files.move(temporaryFile, target,
                         StandardCopyOption.REPLACE_EXISTING,
@@ -113,22 +91,12 @@ public class CourseFileHandler {
                 Files.move(temporaryFile, target, StandardCopyOption.REPLACE_EXISTING);
             }
         } finally {
-            // If the move succeeded this file no longer exists, so this is a
-            // no-op. If writing failed, it removes the incomplete temp file.
+            // Remove the temp file if it still exists.
             Files.deleteIfExists(temporaryFile);
         }
     }
 
-    /**
-     * Reads and validates an entire file before returning any courses.
-     *
-     * <p>A temporary CourseManager is used while parsing. If any line is
-     * malformed, has invalid units, or repeats a code, this method throws an
-     * IOException with the line number. The caller's current list is therefore
-     * never changed by a failed load.</p>
-     *
-     * @throws IOException if the file is missing, unreadable, or contains bad data
-     */
+    /** Reads and validates the whole file before returning any courses. */
     public List<Course> loadCourses() throws IOException {
         Path source = filePath.toAbsolutePath();
 
@@ -141,8 +109,7 @@ public class CourseFileHandler {
         try {
             lines = Files.readAllLines(source, StandardCharsets.UTF_8);
         } catch (NoSuchFileException e) {
-            // Handles the rare case where the file disappears between the
-            // exists() check and the read.
+            // The file may disappear between the check and the read.
             throw new FileNotFoundException(
                     "No saved file was found at " + getDisplayPath() + ".");
         } catch (IOException e) {
@@ -169,15 +136,14 @@ public class CourseFileHandler {
 
             int units;
             try {
-                // Use the same unit rules as the user interface so a file
-                // cannot accept text that manual entry would reject.
+                // Use the same unit rules as manual entry.
                 units = Course.parseUnits(unitsText);
             } catch (IllegalArgumentException e) {
                 throw new IOException("Line " + lineNumber + ": " + e.getMessage());
             }
 
             try {
-                // This also validates the code/title and rejects duplicates.
+                // This also validates the code and title and rejects duplicates.
                 parsedCourses.addCourse(code, title, units);
             } catch (IllegalArgumentException e) {
                 throw new IOException("Line " + lineNumber + ": " + e.getMessage());
@@ -187,9 +153,7 @@ public class CourseFileHandler {
         return parsedCourses.getAllCourses();
     }
 
-    /**
-     * Defensive check: the save format cannot store these characters.
-     */
+    /** Rejects characters that would break the save format. */
     private static boolean containsTabOrLineBreak(String value) {
         return value.indexOf('\t') >= 0
                 || value.indexOf('\n') >= 0

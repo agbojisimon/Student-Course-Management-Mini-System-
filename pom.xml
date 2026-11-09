@@ -19,7 +19,7 @@
     </properties>
 
     <dependencies>
-        <!-- Stable FlatLaf release resolved from Maven Central. -->
+        <!-- FlatLaf look and feel. -->
         <dependency>
             <groupId>com.formdev</groupId>
             <artifactId>flatlaf</artifactId>
@@ -35,7 +35,7 @@
                 <version>3.16.0</version>
             </plugin>
 
-            <!-- Optional convenience for running the application from the command line. -->
+            <!-- Lets you run the app from the command line. -->
             <plugin>
                 <groupId>org.codehaus.mojo</groupId>
                 <artifactId>exec-maven-plugin</artifactId>

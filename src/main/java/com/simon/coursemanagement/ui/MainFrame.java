@@ -64,15 +64,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.ExecutionException;
 
-/**
- * Main Swing window for the Student Course Management application.
- *
- * <p>The frame is a single dashboard with a dark navigation sidebar, a compact
- * summary, a course entry form, a searchable course table, file actions, and a
- * persistent status bar. Business rules still live in {@link Course} and
- * {@link CourseManager}; file handling still lives in {@link CourseFileHandler}.
- * The event handlers below only connect those objects to the controls.</p>
- */
+/** Main window for the course manager. */
 public final class MainFrame extends JFrame {
 
     private static final int FIELD_HEIGHT = 40;
@@ -130,10 +122,7 @@ public final class MainFrame extends JFrame {
     private boolean busy;
     private boolean exiting;
 
-    /**
-     * Creates the complete window. Callers should construct this on the Swing
-     * Event Dispatch Thread after installing the FlatLaf look and feel.
-     */
+    /** Builds the window. Must run on the Swing event thread. */
     public MainFrame(CourseManager courseManager, CourseFileHandler fileHandler) {
         super("Course Manager - Student Course Management");
         if (courseManager == null || fileHandler == null) {
@@ -167,14 +156,11 @@ public final class MainFrame extends JFrame {
         updateActionAvailability();
         setStatus("Ready. Add a course or load a saved file.", StatusKind.INFO);
 
-        // Defer the initial focus request until the frame has been displayed.
+        // Focus the code field after the window is visible.
         SwingUtilities.invokeLater(codeField::requestFocusInWindow);
     }
 
-    /**
-     * Builds the sidebar and the main content area without using absolute
-     * positioning. Every section uses a standard Swing layout manager.
-     */
+    /** Builds the sidebar and main content area. */
     private JPanel buildRootPanel() {
         JPanel root = new JPanel(new BorderLayout());
         root.setBackground(UiTheme.WHITE);
@@ -297,10 +283,7 @@ public final class MainFrame extends JFrame {
         return main;
     }
 
-    /**
-     * Puts the entry form beside the course table so the dashboard uses the
-     * available width instead of creating a very tall single column.
-     */
+    /** Places the entry form beside the course table. */
     private JPanel createWorkspacePanel() {
         JPanel workspace = new JPanel(new GridBagLayout());
         workspace.setOpaque(false);
@@ -484,10 +467,7 @@ public final class MainFrame extends JFrame {
         field.setToolTipText(placeholder);
     }
 
-    /**
-     * Adds Enter-to-submit and clears stale validation messages as soon as the
-     * user edits a field.
-     */
+    /** Adds Enter-to-submit and clears old validation messages. */
     private void installFormFieldBehaviour(JTextField field) {
         field.getInputMap(JComponent.WHEN_FOCUSED).put(
                 KeyStroke.getKeyStroke(KeyEvent.VK_ENTER, 0), "submit-course");
@@ -729,9 +709,7 @@ public final class MainFrame extends JFrame {
         return statusBar;
     }
 
-    /**
-     * Runs the primary form action: add in normal mode, update in editing mode.
-     */
+    /** Runs Add or Save Changes depending on the current mode. */
     private void handlePrimaryFormAction() {
         if (editingCourse == null) {
             handleAddCourse();
@@ -740,10 +718,7 @@ public final class MainFrame extends JFrame {
         }
     }
 
-    /**
-     * Action 1: validate the three fields, add the course, update every visible
-     * summary, clear the form, and return focus to Course Code.
-     */
+    /** Adds the course from the form. */
     private void handleAddCourse() {
         if (busy) {
             return;
@@ -774,11 +749,7 @@ public final class MainFrame extends JFrame {
         }
     }
 
-    /**
-     * Validates the form, then replaces the course that was selected for
-     * editing. The original Course object is kept separately, so changing the
-     * code still updates the right record.
-     */
+    /** Saves changes to the course being edited. */
     private void handleUpdateCourse() {
         if (busy) {
             return;
@@ -824,11 +795,7 @@ public final class MainFrame extends JFrame {
         }
     }
 
-    /**
-     * Reads and validates all three form fields. The field is focused and
-     * highlighted when its value is invalid. A null result means the caller
-     * should stop and leave the stored courses unchanged.
-     */
+    /** Reads and validates the form, returning null if anything is invalid. */
     private Course readValidatedFormCourse() {
         clearFormError();
         clearInvalidOutlines();
@@ -871,11 +838,7 @@ public final class MainFrame extends JFrame {
                 && first.getUnits() == second.getUnits();
     }
 
-    /**
-     * Loads the selected course into the existing entry form. The Course object
-     * itself is stored in editingCourse, so later changes to the code text do
-     * not affect which record is updated.
-     */
+    /** Loads the selected course into the form for editing. */
     private void handleEditSelected() {
         if (busy) {
             return;
@@ -900,10 +863,7 @@ public final class MainFrame extends JFrame {
         codeField.selectAll();
     }
 
-    /**
-     * Confirms and deletes only the selected course. If that same course is
-     * currently being edited, editing is cancelled and the form is cleared.
-     */
+    /** Deletes the selected course after confirmation. */
     private void handleDeleteSelected() {
         if (busy) {
             return;
@@ -952,9 +912,7 @@ public final class MainFrame extends JFrame {
         }
     }
 
-    /**
-     * Leaves editing mode and clears the form without changing any course.
-     */
+    /** Leaves edit mode and clears the form. */
     private void stopEditing() {
         editingCourse = null;
         setEditingMode(false);
@@ -963,9 +921,7 @@ public final class MainFrame extends JFrame {
         clearInvalidOutlines();
     }
 
-    /**
-     * Changes the form labels and button text so editing mode is obvious.
-     */
+    /** Updates the form text for add or edit mode. */
     private void setEditingMode(boolean editing) {
         entryTitleLabel.setText(editing ? "Edit Course" : "Course Entry");
         if (editing && editingCourse != null) {
@@ -978,10 +934,7 @@ public final class MainFrame extends JFrame {
         clearButton.setText(editing ? "Cancel Edit" : "Clear Form");
     }
 
-    /**
-     * Re-runs the current search after an update or delete. This keeps the
-     * visible results accurate even when the edited course code changed.
-     */
+    /** Repeats the active search after an update or delete. */
     private void refreshActiveSearch() {
         displayedCourses.clear();
         if (searchActive) {
@@ -992,8 +945,7 @@ public final class MainFrame extends JFrame {
                     displayedCourses.add(found);
                 }
             } catch (IllegalArgumentException ignored) {
-                // A search that was active before the change should still be
-                // valid, but an empty result is safer than stale data.
+                // Show an empty result instead of stale data.
             }
         }
         refreshTable();
@@ -1001,9 +953,7 @@ public final class MainFrame extends JFrame {
         updateActionAvailability();
     }
 
-    /**
-     * Action 2: restore the full list after a filtered search.
-     */
+    /** Restores the full course list. */
     private void handleShowAll() {
         if (busy) {
             return;
@@ -1023,10 +973,7 @@ public final class MainFrame extends JFrame {
         }
     }
 
-    /**
-     * Action 3: validate the search text and use the recursive search in
-     * {@link CourseManager}. The table is temporarily filtered to the match.
-     */
+    /** Searches by code and filters the table to the match. */
     private void handleSearch() {
         if (busy) {
             return;
@@ -1066,9 +1013,7 @@ public final class MainFrame extends JFrame {
                 + (found.getUnits() == 1 ? " unit)." : " units)."), StatusKind.SUCCESS);
     }
 
-    /**
-     * Action 4: ask the service layer for the total and show a clear status.
-     */
+    /** Shows the total credit units. */
     private void handleComputeTotalUnits() {
         if (busy) {
             return;
@@ -1084,10 +1029,7 @@ public final class MainFrame extends JFrame {
         }
     }
 
-    /**
-     * Action 5: save a snapshot on a background thread so the window stays
-     * responsive. SwingWorker delivers the completion code back to the EDT.
-     */
+    /** Saves the course list in the background. */
     private void handleSaveToFile() {
         if (busy) {
             return;
@@ -1128,10 +1070,7 @@ public final class MainFrame extends JFrame {
         }.execute();
     }
 
-    /**
-     * Action 6: confirm before replacing unsaved work, then load the file in
-     * the background and replace the live list only after a successful parse.
-     */
+    /** Loads the file in the background after confirming unsaved changes. */
     private void handleLoadFromFile() {
         if (busy) {
             return;
@@ -1190,10 +1129,7 @@ public final class MainFrame extends JFrame {
         }.execute();
     }
 
-    /**
-     * Action 7: close safely. The same method is used by the Exit button and
-     * the window X button, so both paths protect unsaved changes.
-     */
+    /** Closes the window and protects unsaved changes. */
     public void requestExit() {
         if (exiting) {
             return;
@@ -1264,10 +1200,7 @@ public final class MainFrame extends JFrame {
         }.execute();
     }
 
-    /**
-     * In add mode this clears the form. In edit mode it cancels editing without
-     * changing the stored course.
-     */
+    /** Clears the form or cancels edit mode. */
     private void handleClearOrCancelForm() {
         if (busy) {
             return;
@@ -1302,10 +1235,7 @@ public final class MainFrame extends JFrame {
         activeNavigationButton.setActive(true);
     }
 
-    /**
-     * Rebuilds the table from the manager snapshot, or from the temporary
-     * search result list. The empty-state card is shown when no rows exist.
-     */
+    /** Rebuilds the table and shows the empty state when needed. */
     private void refreshTable() {
         List<Course> source = searchActive
                 ? new ArrayList<>(displayedCourses)
@@ -1338,11 +1268,7 @@ public final class MainFrame extends JFrame {
         refreshSummary();
     }
 
-    /**
-     * Returns the Course object for the selected table row. The row sorter can
-     * reorder or filter the visible rows, so the view row is converted back to
-     * the model row before the course is read.
-     */
+    /** Returns the selected course, accounting for table sorting. */
     private Course selectedCourse() {
         int viewRow = courseTable.getSelectedRow();
         if (viewRow < 0) {
@@ -1355,10 +1281,7 @@ public final class MainFrame extends JFrame {
         return tableModel.getCourseAt(modelRow);
     }
 
-    /**
-     * Enables Edit/Delete only when a row is selected and no file operation is
-     * running. All other actions are disabled only while the window is busy.
-     */
+    /** Enables or disables actions based on selection and busy state. */
     private void updateActionAvailability() {
         boolean enabled = !busy;
         for (JButton button : actionButtons) {
@@ -1464,10 +1387,7 @@ public final class MainFrame extends JFrame {
         return button;
     }
 
-    /**
-     * Explicit focus order keeps Tab predictable across sidebar, form, search,
-     * table, file actions, and exit.
-     */
+    /** Sets a predictable Tab order. */
     private void installFocusOrder() {
         List<Component> order = List.of(
                 dashboardButton, coursesButton,
@@ -1567,9 +1487,7 @@ public final class MainFrame extends JFrame {
         }
     }
 
-    /**
-     * A white rounded card with a light grey border used for dashboard panels.
-     */
+    /** Rounded white panel used for dashboard cards. */
     private static final class CardPanel extends JPanel {
 
         private CardPanel() {
@@ -1590,10 +1508,7 @@ public final class MainFrame extends JFrame {
         }
     }
 
-    /**
-     * Renderer used for table body cells. It adds left padding and a bold code
-     * column while keeping the selected row clearly visible.
-     */
+    /** Table cell renderer with padding and a bold course code. */
     private static final class CourseCellRenderer extends DefaultTableCellRenderer {
 
         @Override
@@ -1619,9 +1534,7 @@ public final class MainFrame extends JFrame {
         }
     }
 
-    /**
-     * Header renderer gives the table a calm grey header with readable padding.
-     */
+    /** Table header renderer with sorting icons. */
     private static final class CourseHeaderRenderer extends DefaultTableCellRenderer {
 
         @Override
@@ -1661,10 +1574,7 @@ public final class MainFrame extends JFrame {
         }
     }
 
-    /**
-     * Focus policy that follows the order supplied by the frame and skips
-     * controls that are disabled or hidden during a file operation.
-     */
+    /** Focus policy that skips disabled controls. */
     private static final class OrderedFocusTraversalPolicy extends FocusTraversalPolicy {
 
         private final List<Component> order;

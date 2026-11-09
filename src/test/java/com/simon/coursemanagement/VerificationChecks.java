@@ -13,14 +13,7 @@ import java.util.Comparator;
 import java.util.List;
 import java.util.stream.Stream;
 
-/**
- * Focused checks for the business logic and file handling.
- *
- * <p>This is a plain Java program rather than a JUnit test so the project stays
- * small and has no test-only dependencies. Run it with
- * {@code java -cp target/test-classes;target/classes com.simon.coursemanagement.VerificationChecks}
- * after {@code mvn test-compile}.</p>
- */
+/** Plain Java checks for the course logic and file handling. */
 public final class VerificationChecks {
 
     private static int checks = 0;

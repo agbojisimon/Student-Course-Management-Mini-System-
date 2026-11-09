@@ -6,12 +6,7 @@ import javax.swing.table.AbstractTableModel;
 import java.util.ArrayList;
 import java.util.List;
 
-/**
- * Table model that exposes courses to the Swing {@code JTable}.
- *
- * <p>The model receives a snapshot of courses and never modifies the service
- * layer. This keeps the table display separate from the business rules.</p>
- */
+/** Table model that shows a course list in a JTable. */
 public final class CourseTableModel extends AbstractTableModel {
 
     private static final String[] COLUMN_NAMES = {

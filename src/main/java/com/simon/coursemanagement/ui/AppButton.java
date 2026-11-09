@@ -11,14 +11,7 @@ import java.awt.Graphics;
 import java.awt.Graphics2D;
 import java.awt.RenderingHints;
 
-/**
- * A small custom button that guarantees visible normal, hover, pressed,
- * focused, and disabled states.
- *
- * <p>FlatLaf supplies the layout and text painting. This class adds the coloured
- * rounded background so primary buttons can be blue and sidebar buttons can be
- * dark navy while still using the same reusable component.</p>
- */
+/** Button with custom colours for normal, hover, pressed, focus, and disabled states. */
 public final class AppButton extends JButton {
 
     private final Color normalBackground;
@@ -83,10 +76,7 @@ public final class AppButton extends JButton {
                 UiTheme.BLUE_FOCUS, true, 10);
     }
 
-    /**
-     * Marks the current navigation section. The active sidebar item receives a
-     * blue background and white text.
-     */
+    /** Marks the active sidebar button. */
     public void setActive(boolean active) {
         this.active = active;
         repaint();
@@ -124,8 +114,7 @@ public final class AppButton extends JButton {
         }
         g2.dispose();
 
-        // The button text is painted by the normal Swing button code after the
-        // custom background has been drawn.
+        // Draw the background first, then let Swing paint the text.
         super.paintComponent(graphics);
 
         if (isFocusOwner() && isEnabled()) {

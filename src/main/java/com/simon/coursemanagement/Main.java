@@ -12,14 +12,7 @@ import javax.swing.UIManager;
 import java.awt.Font;
 import java.awt.GraphicsEnvironment;
 
-/**
- * Application entry point.
- *
- * <p>Swing components must be created on the Event Dispatch Thread, which is
- * why the frame construction is wrapped in {@link SwingUtilities#invokeLater}.
- * FlatLaf is installed before the frame is built so every control uses the
- * same modern look and feel.</p>
- */
+/** Starts the application and opens the main window. */
 public final class Main {
 
     private Main() {
@@ -49,10 +42,7 @@ public final class Main {
         });
     }
 
-    /**
-     * Applies the shared blue focus treatment and readable selection colours.
-     * These values sit alongside the explicit fonts and colours in MainFrame.
-     */
+    /** Applies the shared focus and selection colours. */
     private static void configureGlobalStyles() {
         UIManager.put("defaultFont", UiTheme.font(14, Font.PLAIN));
 
